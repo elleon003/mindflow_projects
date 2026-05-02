@@ -1,0 +1,13 @@
+-r requirements.txt
+
+# Package update management
+pip-review~=1.3.0
+
+# Debug toolbar
+django-debug-toolbar~=6.3.0
+
+# Browser auto-reload in development
+django-browser-reload~=1.21.0
+
+# Process management
+honcho~=2.0.0

@@ -1,0 +1,22 @@
+{{ wizard.management_form }}
+
+{% if wizard.form.non_field_errors %}
+  {{ wizard.form.non_field_errors }}
+{% endif %}
+
+{% for hidden_field in wizard.form.hidden_fields %}
+  {{ hidden_field }}
+{% endfor %}
+
+{% for field in wizard.form.visible_fields %}
+  <div class="mb-3">
+    {{ field.label_tag }}
+    {{ field }}
+    {% if field.errors %}
+      {{ field.errors }}
+    {% endif %}
+    {% if field.help_text %}
+      <small class="helptext">{{ field.help_text }}</small>
+    {% endif %}
+  </div>
+{% endfor %}
