@@ -45,7 +45,7 @@ Help the user answer three questions quickly: what matters now, what is at risk,
 * Routines
 * Time blocks
 * Inbox items
-* Check-ins / capacity signals\[cite:9\]\[cite:10\]
+* Check-ins / capacity signals
 
 ### Core screens
 
@@ -64,7 +64,7 @@ Help the user answer three questions quickly: what matters now, what is at risk,
 * Context / mode tags
 * First tiny step
 * Due date / scheduled date
-* Blocked / waiting status\[cite:8\]\[cite:9\]\[cite:18\]
+* Blocked / waiting status
 
 ## Prioritization Logic
 
