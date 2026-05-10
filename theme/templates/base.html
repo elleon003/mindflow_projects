@@ -2,25 +2,23 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Django Starter</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>{% block title %}MindFlow{% endblock %}</title>
     {% tailwind_css %}
 </head>
 
-<body class="bg-gray-50 text-black font-serif leading-normal tracking-normal">
-
-    <div class="toast toast-top toast-end">
-        <div class="alert alert-info">
-            <span>Hello from daisyUi 👋</span>
+<body class="bg-base-200 text-base-content min-h-screen font-sans">
+    {% if messages %}
+    <div class="container mx-auto px-4 pt-4 space-y-2 max-w-3xl">
+        {% for message in messages %}
+        <div role="alert" class="alert {% if message.tags == 'success' %}alert-success{% elif message.tags == 'error' %}alert-error{% elif message.tags == 'warning' %}alert-warning{% else %}alert-info{% endif %}">
+            <span>{{ message }}</span>
         </div>
+        {% endfor %}
     </div>
-
-<div class="container mx-auto">
-    <section class="flex items-center justify-center h-screen">
-        <h1 class="text-5xl">Django + Tailwind = ❤️</h1>
-    </section>
-</div>
+    {% endif %}
+    {% block content %}{% endblock %}
 </body>
 </html>

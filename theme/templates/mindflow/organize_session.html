@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Organize session · MindFlow{% endblock %}
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-3xl">
+  <p class="mb-4"><a href="{% url 'capture' %}" class="link">Back to capture</a></p>
+
+  <h1 class="text-2xl font-bold mb-2">Organize session</h1>
+  <p class="text-sm opacity-70 mb-6">Session #{{ session.pk }} · {{ session.get_state_display }}</p>
+
+  {% if session.state == 'failed' %}
+  <div role="alert" class="alert alert-error">
+    <span>{{ session.error_detail }}</span>
+  </div>
+  <p class="mt-4"><a href="{% url 'capture' %}" class="btn btn-primary">Return to capture</a></p>
+
+  {% elif session.state == 'awaiting_clarification' %}
+  <form method="post" class="space-y-4">
+    {% csrf_token %}
+    {% for q in questions %}
+    <label class="form-control w-full">
+      <span class="label-text font-medium">{{ q.prompt }}</span>
+      <input
+        type="text"
+        name="answer_{{ q.question_id }}"
+        class="input input-bordered w-full mt-1"
+        autocomplete="off"
+        required
+      />
+    </label>
+    {% endfor %}
+    <button type="submit" name="session_action" value="clarify" class="btn btn-primary">
+      Continue
+    </button>
+    <button type="submit" name="session_action" value="cancel" class="btn btn-ghost">
+      Cancel
+    </button>
+  </form>
+
+  {% elif session.state == 'awaiting_review' %}
+  <div class="mb-6">
+    <h2 class="text-lg font-semibold mb-3">Proposed plan</h2>
+    <ul class="space-y-3">
+      {% for p in plan_items %}
+      <li class="card bg-base-100 border border-base-300 shadow-sm">
+        <div class="card-body py-3">
+          <p class="font-medium">{{ p.task_title|default:p.new_project_name|default:p.project_name|default:"(untitled)" }}</p>
+          <p class="text-sm opacity-80">{{ p.action_type }}</p>
+          {% if p.rationale %}
+          <p class="text-sm mt-2">{{ p.rationale }}</p>
+          {% endif %}
+        </div>
+      </li>
+      {% empty %}
+      <li class="opacity-70">No plan items in session.</li>
+      {% endfor %}
+    </ul>
+  </div>
+  <form method="post" class="flex flex-wrap gap-3">
+    {% csrf_token %}
+    <button type="submit" name="session_action" value="approve" class="btn btn-success">
+      Approve plan
+    </button>
+    <button type="submit" name="session_action" value="cancel" class="btn btn-outline">
+      Cancel
+    </button>
+  </form>
+
+  {% else %}
+  <p class="opacity-80 mb-4">This session is {{ session.get_state_display|lower }}.</p>
+  <a href="{% url 'capture' %}" class="btn btn-primary">Back to capture</a>
+  {% endif %}
+</div>
+{% endblock %}

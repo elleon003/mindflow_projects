@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Capture · MindFlow{% endblock %}
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-3xl">
+  <h1 class="text-3xl font-bold mb-6">Inbox capture</h1>
+
+  <form method="post" action="{% url 'capture' %}" class="mb-10">
+    {% csrf_token %}
+    <label class="form-control w-full">
+      <span class="label-text font-medium">Quick capture</span>
+      <textarea name="body" class="textarea textarea-bordered w-full mt-1" rows="3" placeholder="Dump a thought without organizing it yet"></textarea>
+    </label>
+    <button type="submit" class="btn btn-primary mt-3">Add to inbox</button>
+  </form>
+
+  <h2 class="text-xl font-semibold mb-4">Inbox</h2>
+
+  {% if inbox_items %}
+  <div class="space-y-3 mb-6">
+    {% for item in inbox_items %}
+    <div class="card bg-base-100 shadow-sm border border-base-300">
+      <div class="card-body py-4 flex-row flex-wrap items-start gap-4">
+        <input
+          type="checkbox"
+          form="organize-form"
+          name="item_ids"
+          value="{{ item.pk }}"
+          class="checkbox checkbox-primary mt-1"
+          {% if item.status != 'in_inbox' %}disabled{% endif %}
+        />
+        <div class="flex-1 min-w-0">
+          <p class="whitespace-pre-wrap break-words">{{ item.body }}</p>
+          {% if item.status == 'locked_for_ai' %}
+          <span class="badge badge-warning badge-sm mt-2">Organizing</span>
+          {% endif %}
+        </div>
+        {% if item.status == 'in_inbox' %}
+        <form
+          method="post"
+          action="{% url 'capture_discard_item' item.pk %}"
+          class="shrink-0"
+          onsubmit="return confirm('Discard this item?');"
+        >
+          {% csrf_token %}
+          <button type="submit" class="btn btn-ghost btn-sm">Discard</button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <form id="organize-form" method="post" action="{% url 'capture_organize_start' %}" class="flex flex-wrap gap-3">
+    {% csrf_token %}
+    <button type="submit" name="action" value="selected" class="btn btn-secondary">
+      Organize selected
+    </button>
+    <button type="submit" name="action" value="all" class="btn btn-outline">
+      Organize next batch
+    </button>
+  </form>
+  {% else %}
+  <p class="opacity-70">Nothing in your inbox yet.</p>
+  {% endif %}
+</div>
+{% endblock %}
