@@ -3,6 +3,13 @@ from django.contrib import admin
 from mindflow import models as mf
 
 
+@admin.register(mf.Area)
+class AreaAdmin(admin.ModelAdmin):
+    list_display = ("id", "name", "user", "sort_order", "created_at")
+    list_filter = ("user",)
+    search_fields = ("name",)
+
+
 @admin.register(mf.InboxItem)
 class InboxItemAdmin(admin.ModelAdmin):
     list_display = ("id", "user", "status", "created_at", "body_preview")
@@ -28,7 +35,8 @@ class AiOrganizeUsageAdmin(admin.ModelAdmin):
 
 @admin.register(mf.Project)
 class ProjectAdmin(admin.ModelAdmin):
-    list_display = ("id", "name", "user", "client_name")
+    list_display = ("id", "name", "area", "user", "client_name")
+    list_filter = ("area",)
 
 
 @admin.register(mf.Task)

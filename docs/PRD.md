@@ -34,20 +34,60 @@ Help the user answer three questions quickly: what matters now, what is at risk,
 * As a user, I want a fast capture inbox so I can get thoughts out of my head without organizing them immediately.
 * As a user, I want a weekly reset view so I can review every active project, spot drift, and schedule next actions.
 
-## MVP Scope
+---
 
-### Core objects
+## Implementation status (repository truth)
+
+This section reflects what the **`mindflow`** Django app and **`config`** project actually implement today. If this document disagrees with code, **trust the code** (`mindflow/models.py`, `mindflow/api.py`, `mindflow/services/organize.py`).
+
+### Stack (established)
+
+* **Backend:** Python 3.12, Django 6.x, **django-ninja** HTTP API (`MindFlow API`), session authentication for API routes.
+* **Frontend assets:** Tailwind CSS v4 and DaisyUI under the **`theme`** app; templates exist for base layout and two-factor auth flows.
+* **Ops:** WhiteNoise, django-unfold admin, django-two-factor-auth, environment config via **environs** (see `.env.example`).
+* **Optional AI:** OpenAI-compatible HTTP inference (`AI_*` settings) drives the inbox organize flow—not the future “Today” scoring engine.
+
+### Shipped domain model (minimal)
+
+* **InboxItem** — unstructured capture body; status workflow (in inbox, locked for AI, sorted, discarded).
+* **Area** — user-scoped name + optional `sort_order`; groups projects.
+* **Project** — name and optional client name; optional **area** (FK); used by organize approve step.
+* **Task** — title, body, optional project, optional link to originating inbox item.
+* **AiOrganizeSession** — state machine (analyzing, clarification, review, completed, cancelled, failed) with JSON snapshot fields for AI phases.
+* **AiOrganizeUsage** — rate-limit accounting for completed organize sessions.
+
+Not yet modeled: milestones, routines, time blocks, check-ins, or rich task metadata (energy, friction, etc.).
+
+### Shipped HTTP API
+
+Session-authenticated **inbox organize** endpoints only: start session, get session, submit clarifications, approve plan, cancel. There is **no** public REST surface yet for listing or creating inbox items, tasks, or projects from a client UI—those records are created via the organize approve path or **Django admin**.
+
+### Shipped product UI
+
+**None** beyond authentication-related templates and theme scaffolding. Day-to-day product screens (Today, Projects, Calendar, Capture, Weekly Reset) are **not** built in templates or views yet.
+
+### Tests
+
+`python manage.py test` runs API tests for organize behavior and rate limits (`mindflow/test_organize_api.py`, `mindflow/test_rate_limits.py`, etc.).
+
+---
+
+## Target MVP (not yet fully implemented)
+
+The sections below describe the **intended** first full product release. Items above describe **current** progress.
+
+### Core objects (target)
 
 * Areas
-* Projects
+* Projects (health, progress—not just name)
 * Milestones
-* Tasks
+* Tasks (with metadata below)
 * Routines
 * Time blocks
-* Inbox items
-* Check-ins / capacity signals\[cite:9\]\[cite:10\]
+* Inbox items (capture + sort)
+* Check-ins / capacity signals
 
-### Core screens
+### Core screens (target)
 
 * **Today:** a constrained list of must-do items, suggested next actions, routines due, and scheduled work blocks.
 * **Projects:** project cards with progress, health, next milestone, and at-risk indicators.
@@ -55,7 +95,7 @@ Help the user answer three questions quickly: what matters now, what is at risk,
 * **Capture:** frictionless inbox entry for unstructured tasks and ideas.
 * **Weekly Reset:** a guided review flow for project health and next-step planning.
 
-### Core task metadata
+### Core task metadata (target)
 
 * Energy required
 * Brain space required
@@ -64,13 +104,19 @@ Help the user answer three questions quickly: what matters now, what is at risk,
 * Context / mode tags
 * First tiny step
 * Due date / scheduled date
-* Blocked / waiting status\[cite:8\]\[cite:9\]\[cite:18\]
+* Blocked / waiting status
 
-## Prioritization Logic
+---
 
-The first version should use deterministic recommendation rules rather than depending on AI for core functionality. Task suggestions should score items based on urgency, project risk, milestone proximity, available time, energy match, brain-space match, and momentum for already-started work.
+## Prioritization and intelligence (clarified)
 
-Success Criteria
+Two different concerns:
+
+1. **Inbox → structure (implemented):** Turning captured inbox rows into tasks and projects uses an **optional, configurable LLM** (OpenAI-compatible HTTP) inside an organize session—clarification questions, proposed plan, user approval. This reduces manual filing for capture; it is not the same subsystem as daily “what to do next.”
+
+2. **Execution order / Today (target):** The **first version of task suggestions for working the list** should use **deterministic recommendation rules** (urgency, project risk, milestone proximity, available time, energy match, brain-space match, momentum). That keeps day-to-day guidance predictable and testable without requiring AI for core functionality.
+
+### Success criteria (target MVP)
 
 * The user can identify the next best action in under a minute.
 * Every active project has a visible next milestone and at least one next action.
@@ -81,6 +127,6 @@ Success Criteria
 
 Team collaboration, chat, invoicing, document editing, and advanced automations should be excluded from the first release so the product stays focused on clarity, progress visibility, and execution support.
 
-## Suggested Stack
+## Suggested stack (aligned with repository)
 
-A practical implementation path is Django for core models, Django Ninja for APIs, and a PWA-style frontend, which aligns with the intended technical direction already established for this product concept.
+Django for core models, **Django Ninja** for APIs, Tailwind and DaisyUI for styling, and a **web UI** suitable for later PWA-style installation once screens exist. The repo already follows this direction; product templates and client flows still need to be built on top.

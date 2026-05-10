@@ -2,6 +2,8 @@
 
 Guidance for AI coding agents and humans working on this repository. Prefer reading actual code and configs over this file when they disagree.
 
+**Virtual environment:** Activate the project virtualenv **before every Python-related command** (`python`, `pip`, `python -m pip`, `manage.py`, tests, formatters/linters that run on this codebase, etc.). The system interpreter may not have dependencies installed. Example: `source .venv/bin/activate` from the repo root (use your actual venv path if different).
+
 ## Project overview
 
 **MindFlow Projects** (working name) is an ADHD-oriented project and planning product; product intent is documented in `docs/PRD.md`. The Django app **`mindflow`** implements domain logic and a **django-ninja** HTTP API described in code as an inbox capture/sort workflow (e.g. `MindFlow API`, organize session endpoints in `mindflow/api.py`). There is no root `README.md`; use `docs/PRD.md` for product terminology and the `mindflow/` and `config/` packages for what is implemented today.
@@ -43,7 +45,7 @@ Do not commit real secrets; keep them in `.env` (gitignored).
 
 ## Common commands
 
-From the repository root (activate your virtualenv if you use one, e.g. `.venv`):
+From the repository root, **with the virtualenv activated**:
 
 ```bash
 pip install -r requirements.txt -r requirements-dev.txt
@@ -59,7 +61,7 @@ npm run dev      # watch: postcss rebuild to theme/static/css/dist/styles.css
 npm run build    # clean + production minified CSS
 ```
 
-Optional **django-tailwind** dev process (see `Procfile.tailwind`): `python manage.py tailwind start` alongside `runserver`.
+Optional **django-tailwind** dev process (see `Procfile.tailwind`): with venv activated, `python manage.py tailwind start` alongside `runserver`.
 
 ## Agent skills
 
@@ -76,7 +78,7 @@ There is also **`django-textchoices-pyright`** for TextChoices typing patterns w
 
 ## Testing
 
-There is **no** `pytest.ini` or `pyproject.toml` test runner in this repo. Tests live under **`mindflow/`** (`test_organize_api.py`, `test_rate_limits.py`, plus `tests.py`). Run:
+There is **no** `pytest.ini` or `pyproject.toml` test runner in this repo. Tests live under **`mindflow/`** (`test_organize_api.py`, `test_rate_limits.py`, plus `tests.py`). With the virtualenv activated, run:
 
 ```bash
 python manage.py test

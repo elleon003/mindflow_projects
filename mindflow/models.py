@@ -18,12 +18,44 @@ class AiOrganizeSessionState(models.TextChoices):
     FAILED = "failed", "Failed"  # pyright: ignore[reportAssignmentType]
 
 
+class Area(models.Model):
+    """User-defined grouping for projects (e.g. work, personal)."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="areas",
+    )
+    name = models.CharField(max_length=255)
+    sort_order = models.PositiveSmallIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["sort_order", "name"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "name"],
+                name="mindflow_area_user_name_uniq",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return str(self.name)
+
+
 class Project(models.Model):
     """Minimal project stub for AI approve step."""
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
+        related_name="projects",
+    )
+    area = models.ForeignKey(
+        Area,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name="projects",
     )
     name = models.CharField(max_length=255)

@@ -21,6 +21,10 @@ class PlanItem(BaseModel):
     project_name: str | None = None
     new_project_name: str | None = None
     client_name: str | None = None
+    area_name: str | None = Field(
+        default=None,
+        description="Place project under this area (reuse name from areas list or create).",
+    )
     task_title: str | None = None
     rationale: str = ""
 

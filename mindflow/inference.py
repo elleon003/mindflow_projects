@@ -109,16 +109,20 @@ Output ONLY a single JSON object with this shape:
       "project_name": string | null,
       "new_project_name": string | null,
       "client_name": string | null,
+      "area_name": string | null,
       "task_title": string | null,
       "rationale": string
     }
   ]
 }
 
+Context includes "areas" (existing area ids + names) and "projects" (existing projects with optional area_name). Prefer matching area_name to an existing area when appropriate.
+
 Rules:
 - action_type existing_project: task ties to an existing project name (project_name).
 - new_project: create a project with new_project_name (and optional client_name).
-- quick_task: standalone task; use task_title; project fields may be null.
+- For existing_project and new_project: optional area_name places the project in that life/work area (reuse a name from areas if it fits, else a short new label).
+- quick_task: standalone task; use task_title; project and area fields may be null.
 - If needs_clarification is true, plan_items should be an empty array.
 - If false, questions should be an empty array and plan_items must cover every inbox item id."""
 
@@ -133,12 +137,13 @@ Produce the final plan as JSON only:
       "project_name": string | null,
       "new_project_name": string | null,
       "client_name": string | null,
+      "area_name": string | null,
       "task_title": string | null,
       "rationale": string
     }
   ]
 }
-Cover every inbox item exactly once."""
+Cover every inbox item exactly once. Use area_name when the project belongs to a known area from context or a sensible new area label."""
 
 
 def analyze_batch(context: dict[str, Any]) -> AnalyzePhaseResponse:

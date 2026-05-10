@@ -18,6 +18,7 @@ from mindflow.models import (
     AiOrganizeSession,
     AiOrganizeSessionState,
     AiOrganizeUsage,
+    Area,
     InboxItem,
     InboxItemStatus,
     Project,
@@ -71,6 +72,46 @@ def _select_items(
     return items
 
 
+def _build_organize_context(
+    user,
+    items: list[InboxItem],
+) -> dict[str, Any]:
+    """Snapshot for AI: inbox rows plus existing areas and projects."""
+    base: dict[str, Any] = {
+        "items": [{"id": i.pk, "body": i.body} for i in items],
+        "areas": [
+            {"id": a.pk, "name": a.name}
+            for a in Area.objects.filter(user=user).order_by("sort_order", "name")
+        ],
+        "projects": [
+            {
+                "id": p.pk,
+                "name": p.name,
+                "area_id": p.area_id,
+                "area_name": p.area.name if p.area_id else None,
+                "client_name": p.client_name or None,
+            }
+            for p in Project.objects.filter(user=user).select_related("area").order_by(
+                "name"
+            )
+        ],
+    }
+    return base
+
+
+def _resolve_area(user, plan_item: PlanItem) -> Area | None:
+    raw = (plan_item.area_name or "").strip()
+    if not raw:
+        return None
+    name = raw[:255]
+    area, _ = Area.objects.get_or_create(
+        user=user,
+        name=name,
+        defaults={"sort_order": 0},
+    )
+    return area
+
+
 def _validate_plan_coverage(session: AiOrganizeSession, plan: FinalizePhaseResponse) -> None:
     expected = set(session.inbox_items.values_list("pk", flat=True))
     got = {p.inbox_item_id for p in plan.plan_items}
@@ -92,15 +133,25 @@ def _apply_plan_items(user, plan_items: list[PlanItem]) -> None:
                 source_inbox_item=inbox,
             )
         elif pi.action_type == "new_project":
+            area = _resolve_area(user, pi)
             name = (pi.new_project_name or "Untitled")[:255]
+            defaults: dict[str, Any] = {"client_name": (pi.client_name or "")[:255]}
+            if area is not None:
+                defaults["area"] = area
             proj, _ = Project.objects.get_or_create(
                 user=user,
                 name=name,
-                defaults={"client_name": (pi.client_name or "")[:255]},
+                defaults=defaults,
             )
+            update_fields: list[str] = []
             if pi.client_name and not proj.client_name:
                 proj.client_name = (pi.client_name or "")[:255]
-                proj.save(update_fields=["client_name"])
+                update_fields.append("client_name")
+            if area is not None and proj.area_id != area.pk:
+                proj.area = area
+                update_fields.append("area")
+            if update_fields:
+                proj.save(update_fields=update_fields)
             Task.objects.create(
                 user=user,
                 project=proj,
@@ -109,12 +160,25 @@ def _apply_plan_items(user, plan_items: list[PlanItem]) -> None:
                 source_inbox_item=inbox,
             )
         elif pi.action_type == "existing_project":
+            area = _resolve_area(user, pi)
             pname = (pi.project_name or "Untitled")[:255]
+            defaults = {"client_name": (pi.client_name or "")[:255]}
+            if area is not None:
+                defaults["area"] = area
             proj, _ = Project.objects.get_or_create(
                 user=user,
                 name=pname,
-                defaults={"client_name": (pi.client_name or "")[:255]},
+                defaults=defaults,
             )
+            update_fields: list[str] = []
+            if pi.client_name and not proj.client_name:
+                proj.client_name = (pi.client_name or "")[:255]
+                update_fields.append("client_name")
+            if area is not None and proj.area_id != area.pk:
+                proj.area = area
+                update_fields.append("area")
+            if update_fields:
+                proj.save(update_fields=update_fields)
             Task.objects.create(
                 user=user,
                 project=proj,
@@ -164,9 +228,7 @@ def start_organize_session(
     session.inbox_items.set(items)
     _lock_items(items)
 
-    context: dict[str, Any] = {
-        "items": [{"id": i.pk, "body": i.body} for i in items],
-    }
+    context = _build_organize_context(user, items)
     session.context_snapshot = context
 
     try:

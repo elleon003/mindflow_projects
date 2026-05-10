@@ -13,8 +13,10 @@ from mindflow.models import (
     AiOrganizeSession,
     AiOrganizeSessionState,
     AiOrganizeUsage,
+    Area,
     InboxItem,
     InboxItemStatus,
+    Project,
     Task,
 )
 from mindflow.schemas import (
@@ -65,6 +67,61 @@ class OrganizeApiTests(TestCase):
         r3 = self.client.post(f"/organize/{sid}/approve", user=self.user)
         self.assertEqual(r3.status_code, 200)
         self.assertEqual(Task.objects.filter(user=self.user).count(), 1)
+
+    def test_new_project_sets_area(self) -> None:
+        item = InboxItem.objects.create(user=self.user, body="Ship release")
+        plan_item = PlanItem(
+            inbox_item_id=item.pk,
+            action_type="new_project",
+            new_project_name="Product",
+            area_name="Work",
+            task_title="Ship release",
+            rationale="client project",
+        )
+        with patch("mindflow.inference.analyze_batch") as ab:
+            ab.return_value = AnalyzePhaseResponse(
+                needs_clarification=False,
+                plan_items=[plan_item],
+            )
+            r = self.client.post(
+                "/organize/start",
+                json={"inbox_item_ids": [item.pk]},
+                user=self.user,
+            )
+        self.assertEqual(r.status_code, 200)
+        sid = r.data["session_id"]
+        self.client.post(f"/organize/{sid}/approve", user=self.user)
+        proj = Project.objects.get(user=self.user, name="Product")
+        self.assertIsNotNone(proj.area)
+        self.assertEqual(proj.area.name, "Work")
+        self.assertEqual(Area.objects.filter(user=self.user).count(), 1)
+
+    def test_existing_project_fills_client_name_when_empty(self) -> None:
+        Project.objects.create(user=self.user, name="Alpha", client_name="")
+        item = InboxItem.objects.create(user=self.user, body="Call about renewal")
+        plan_item = PlanItem(
+            inbox_item_id=item.pk,
+            action_type="existing_project",
+            project_name="Alpha",
+            client_name="Acme Corp",
+            task_title="Call about renewal",
+            rationale="existing engagement",
+        )
+        with patch("mindflow.inference.analyze_batch") as ab:
+            ab.return_value = AnalyzePhaseResponse(
+                needs_clarification=False,
+                plan_items=[plan_item],
+            )
+            r = self.client.post(
+                "/organize/start",
+                json={"inbox_item_ids": [item.pk]},
+                user=self.user,
+            )
+        self.assertEqual(r.status_code, 200)
+        sid = r.data["session_id"]
+        self.client.post(f"/organize/{sid}/approve", user=self.user)
+        proj = Project.objects.get(user=self.user, name="Alpha")
+        self.assertEqual(proj.client_name, "Acme Corp")
 
     def test_clarify_then_approve(self) -> None:
         item = InboxItem.objects.create(user=self.user, body="Follow up contract")
